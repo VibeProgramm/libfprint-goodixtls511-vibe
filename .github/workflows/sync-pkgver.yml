@@ -54,7 +54,7 @@ jobs:
           useradd -m builder
           chown -R builder:builder src
           mkdir -p /tmp/mkpkg && chown builder:builder /tmp/mkpkg
-          su builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && BUILDDIR=/tmp/mkpkg makepkg --printsrcinfo" > .SRCINFO
+          su builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && BUILDDIR=/tmp/mkpkg PKGDEST=/tmp/mkpkg SRCDEST=/tmp/mkpkg SRCPKGDEST=/tmp/mkpkg LOGDEST=/tmp/mkpkg makepkg --printsrcinfo" > .SRCINFO
           grep -E "pkg(base|ver)" .SRCINFO
           echo "NEWVER=$newver" >> "$GITHUB_ENV"
 
