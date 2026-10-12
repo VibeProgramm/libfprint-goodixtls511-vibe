@@ -1,0 +1,95 @@
+name: sync-pkgver
+
+# Keeps this -git package in sync with the libfprint fork branch:
+# on push to main, on schedule (polls the fork for new commits) and
+# on manual dispatch it recomputes pkgver from the fork and regenerates
+# .SRCINFO. Optionally pushes the result to AUR (needs secrets, see README).
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "PKGBUILD"
+      - ".github/workflows/sync-pkgver.yml"
+  schedule:
+    - cron: "0 3 * * *" # daily poll of the fork branch
+  workflow_dispatch:
+
+env:
+  FORK_URL: https://github.com/VibeProgramm/libfprint.git
+  FORK_BRANCH: fix/read-loop-error-spin
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install tools
+        run: pacman -Sy --noconfirm --needed git pacman
+
+      - name: Checkout packaging repo
+        uses: actions/checkout@v4
+
+      - name: Clone fork branch the way makepkg would
+        run: |
+          pkgname=$(basename "$GITHUB_WORKSPACE")
+          rm -rf src
+          mkdir -p src
+          # Full clone: pkgver() counts commits, --depth would
+          # produce a wrong r<COUNT> (e.g. r50 instead of r1835).
+          git clone --branch "$FORK_BRANCH" "$FORK_URL" "src/$pkgname"
+
+      - name: Recompute pkgver and .SRCINFO
+        run: |
+          # pkgver() in PKGBUILD prints r<rev-count>.<short-hash>
+          newver=$(bash -c 'srcdir="$PWD/src"; source ./PKGBUILD; pkgver')
+          echo "newver=$newver"
+          sed -i -E "s/^pkgver=.*/pkgver=${newver}/" PKGBUILD
+          makepkg --printsrcinfo > .SRCINFO
+          grep -E "^(pkgbase|pkgver) =" .SRCINFO
+          echo "NEWVER=$newver" >> "$GITHUB_ENV"
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add PKGBUILD .SRCINFO
+          if git diff --cached --quiet; then
+            echo "already in sync, nothing to commit"
+          else
+            git commit -m "sync pkgver to ${NEWVER} (${FORK_BRANCH})"
+            git push
+          fi
+
+  aur-publish:
+    needs: sync
+    if: vars.AUR_PUSH == 'true'
+    runs-on: ubuntu-latest
+    container: archlinux:latest
+    steps:
+      - name: Install tools
+        run: pacman -Sy --noconfirm --needed git openssh pacman
+      - name: Checkout packaging repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Push to AUR
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+          AUR_PKG: ${{ vars.AUR_PKG }}
+        run: |
+          : "${AUR_PKG:?set repo variable AUR_PKG to the AUR package name}"
+          mkdir -p ~/.ssh
+          printf '%s\n' "$AUR_SSH_KEY" > ~/.ssh/aur
+          chmod 600 ~/.ssh/aur
+          ssh-keyscan -t ed25519 aur.archlinux.org >> ~/.ssh/known_hosts
+          export GIT_SSH_COMMAND="ssh -i ~/.ssh/aur"
+          rm -rf aur && git clone "ssh://aur@aur.archlinux.org/${AUR_PKG}.git" aur
+          cp PKGBUILD .SRCINFO aur/
+          cd aur
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add PKGBUILD .SRCINFO
+          git diff --cached --quiet && echo "AUR already in sync" && exit 0
+          git commit -m "sync pkgver from ${GITHUB_SHA}"
+          git push
