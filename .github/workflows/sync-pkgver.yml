@@ -27,12 +27,15 @@ jobs:
       - name: Install tools
         run: pacman -Sy --noconfirm --needed git pacman
 
+      - name: Mark workspace safe (checkout in container runs as root)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Checkout packaging repo
         uses: actions/checkout@v4
 
       - name: Clone fork branch the way makepkg would
         run: |
-          pkgname=$(basename "$GITHUB_WORKSPACE")
+          pkgname=$(bash -c 'source ./PKGBUILD; echo "$pkgname"')
           rm -rf src
           mkdir -p src
           # Full clone: pkgver() counts commits, --depth would
@@ -45,8 +48,10 @@ jobs:
           newver=$(bash -c 'srcdir="$PWD/src"; source ./PKGBUILD; pkgver')
           echo "newver=$newver"
           sed -i -E "s/^pkgver=.*/pkgver=${newver}/" PKGBUILD
-          makepkg --printsrcinfo > .SRCINFO
-          grep -E "^(pkgbase|pkgver) =" .SRCINFO
+          # makepkg refuses root: run --printsrcinfo as nobody
+          chown -R nobody:nobody src
+          su nobody -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && makepkg --printsrcinfo" > .SRCINFO
+          grep -E "pkg(base|ver)" .SRCINFO
           echo "NEWVER=$newver" >> "$GITHUB_ENV"
 
       - name: Commit if changed
@@ -69,6 +74,8 @@ jobs:
     steps:
       - name: Install tools
         run: pacman -Sy --noconfirm --needed git openssh pacman
+      - name: Mark workspace safe (checkout in container runs as root)
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
       - name: Checkout packaging repo
         uses: actions/checkout@v4
         with:
