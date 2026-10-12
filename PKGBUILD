@@ -17,7 +17,7 @@ depends=('glib2' 'glibc' 'gnutls' 'libgudev' 'libgusb' 'openssl' 'pixman')
 makedepends=('git' 'meson' 'pkgconf' 'glib2-devel')
 optdepends=('fprintd: D-Bus daemon for fingerprint authentication')
 
-_branch="fix/read-loop-error-spin"
+_branch="modern-1.94.100"
 source=("${pkgname}::git+${url}#branch=${_branch}")
 sha256sums=('SKIP')
 

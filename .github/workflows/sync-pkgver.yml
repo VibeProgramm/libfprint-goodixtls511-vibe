@@ -17,7 +17,7 @@ on:
 
 env:
   FORK_URL: https://github.com/VibeProgramm/libfprint.git
-  FORK_BRANCH: fix/read-loop-error-spin
+  FORK_BRANCH: modern-1.94.100
 
 jobs:
   sync:
