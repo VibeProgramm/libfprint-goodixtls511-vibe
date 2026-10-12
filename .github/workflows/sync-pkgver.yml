@@ -48,9 +48,12 @@ jobs:
           newver=$(bash -c 'srcdir="$PWD/src"; source ./PKGBUILD; pkgver')
           echo "newver=$newver"
           sed -i -E "s/^pkgver=.*/pkgver=${newver}/" PKGBUILD
-          # makepkg refuses root: run --printsrcinfo as nobody
-          chown -R nobody:nobody src
-          su nobody -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && makepkg --printsrcinfo" > .SRCINFO
+          # makepkg refuses root (and the stock nobody account is
+          # expired in a fresh container): run --printsrcinfo as a
+          # throwaway unprivileged user
+          useradd -m builder
+          chown -R builder:builder src
+          su builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && makepkg --printsrcinfo" > .SRCINFO
           grep -E "pkg(base|ver)" .SRCINFO
           echo "NEWVER=$newver" >> "$GITHUB_ENV"
 
