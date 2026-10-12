@@ -1,6 +1,6 @@
 pkgbase = libfprint-goodixtls511-git
 	pkgdesc = libfprint with Goodix GF511 (27c6:5110) TLS fingerprint sensor driver (read-loop hang fix)
-	pkgver = r1835.24b3fd3
+	pkgver = r2078.610dc49
 	pkgrel = 1
 	url = https://github.com/VibeProgramm/libfprint.git
 	arch = x86_64
@@ -21,7 +21,7 @@ pkgbase = libfprint-goodixtls511-git
 	provides = libfprint-2.so=2-64
 	conflicts = libfprint
 	conflicts = libfprint-goodixtls-git
-	source = libfprint-goodixtls511-git::git+https://github.com/VibeProgramm/libfprint.git#branch=fix/read-loop-error-spin
+	source = libfprint-goodixtls511-git::git+https://github.com/VibeProgramm/libfprint.git#branch=modern-1.94.100
 	sha256sums = SKIP
 
 pkgname = libfprint-goodixtls511-git

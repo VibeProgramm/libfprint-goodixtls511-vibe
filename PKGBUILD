@@ -2,7 +2,7 @@
 # Based on: libfprint-goodixtls511-git by Chris Na <buxel.dev@gmail.com>
 
 pkgname=libfprint-goodixtls511-git
-pkgver=r1835.24b3fd3
+pkgver=r2078.610dc49
 pkgrel=1
 pkgdesc="libfprint with Goodix GF511 (27c6:5110) TLS fingerprint sensor driver (read-loop hang fix)"
 arch=('x86_64')
