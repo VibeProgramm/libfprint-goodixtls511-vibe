@@ -53,7 +53,8 @@ jobs:
           # throwaway unprivileged user
           useradd -m builder
           chown -R builder:builder src
-          su builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && makepkg --printsrcinfo" > .SRCINFO
+          mkdir -p /tmp/mkpkg && chown builder:builder /tmp/mkpkg
+          su builder -s /bin/bash -c "cd '$GITHUB_WORKSPACE' && BUILDDIR=/tmp/mkpkg makepkg --printsrcinfo" > .SRCINFO
           grep -E "pkg(base|ver)" .SRCINFO
           echo "NEWVER=$newver" >> "$GITHUB_ENV"
 
